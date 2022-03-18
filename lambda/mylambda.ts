@@ -1,8 +1,7 @@
 import AWS = require('aws-sdk');
-import { v4 as uuid } from 'uuid';
-
-const tableName = process.env.TABLE_NAME || "";
-const dynamo = new AWS.DynamoDB.DocumentClient();
+import { Book, MutationCreateBookArgs } from '../types/book';
+import { AppSyncResolverHandler } from "aws-lambda";
+import { addTodoItem, getAllTodos, deleteTodoItem } from './db';
 
 const createResponse = (body: string | AWS.DynamoDB.DocumentClient.ItemList, statusCode = 200) => {
     return {
@@ -15,44 +14,29 @@ const createResponse = (body: string | AWS.DynamoDB.DocumentClient.ItemList, sta
     }
 }
 
-const getAllTodos = async () => {
-    const scanResult = await dynamo.scan({ TableName: tableName }).promise();
-    return scanResult;
-}
-const addTodoItem = async (data: { todo: string; id: string }) => {
-    const { id, todo } = data;
-    if (todo && todo !== "") {
-        await dynamo
-            .put({
-                TableName: tableName,
-                Item: {
-                    id: id || uuid(),
-                    todo
-                }
-            })
-            .promise();
+export const appsynchandler_list: AppSyncResolverHandler<null, Book[] | null> = async () => {
+    try {
+        const response = await getAllTodos();
+        return response.Items as Book[];
+    } catch (err) {
+        console.error("[Error] DynamoDB error: ", err);
+        return null;
     }
-
-    return todo;
-};
-const deleteTodoItem = async (data: { id: string }) => {
-    const { id } = data;
-
-    if (id && id !== "") {
-        await dynamo
-            .delete({
-                TableName: tableName,
-                Key: {
-                    id
-                }
-            })
-            .promise();
-    }
-
-    return id;
 };
 
-exports.handler = async function (event: AWSLambda.APIGatewayEvent) {
+export const appsynchandler_create: AppSyncResolverHandler<MutationCreateBookArgs, Book | null> = async (event) => {
+    try {
+        const book = event.arguments.book;
+        const response = await addTodoItem(book);
+        return response as Book;
+
+    } catch (err) {
+        console.error("[Error] DynamoDB error: ", err);
+        return null;
+    }
+};
+
+export const resthandler = async function (event: AWSLambda.APIGatewayEvent) {
     try {
         const { httpMethod, body: requestBody } = event;
 

@@ -1,5 +1,6 @@
 import * as cdk from '@aws-cdk/core';
 import * as apiGateway from '@aws-cdk/aws-apigateway';
+import * as lambda from '@aws-cdk/aws-lambda';
 import * as s3 from '@aws-cdk/aws-s3';
 import * as s3Deployment from '@aws-cdk/aws-s3-deployment';
 import * as appsync from '@aws-cdk/aws-appsync';
@@ -20,7 +21,7 @@ export class CdkGraphqlStack extends cdk.Stack {
 		//   visibilityTimeout: cdk.Duration.seconds(300)
 		// });
 		new apiGateway.LambdaRestApi(this, "MyEndpoint", {
-			handler: myBackend.handler
+			handler: myBackend.resthandler
 		});
 
 		const myGraphqlApi = new appsync.GraphqlApi(this, "MyGraphqlApi", {
@@ -35,7 +36,15 @@ export class CdkGraphqlStack extends cdk.Stack {
 					}
 				}
 			}
-		})
+		});
+
+
+		const listBookDataSource = myGraphqlApi.addLambdaDataSource("listBookDataSource", myBackend.appsynchandler_list);
+		listBookDataSource.createResolver({ typeName: "Query", fieldName: "listBooks", });
+
+		const createBookDataSource = myGraphqlApi.addLambdaDataSource("createBookDataSource", myBackend.appsynchandler_create);
+		createBookDataSource.createResolver({ typeName: "Mutation", fieldName: "createBook", });
+
 
 		/*
 		const websiteBucket = new s3.Bucket(this, "WebsiteBucket", {
