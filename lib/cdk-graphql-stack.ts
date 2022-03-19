@@ -5,14 +5,14 @@ import * as s3 from '@aws-cdk/aws-s3';
 import * as s3Deployment from '@aws-cdk/aws-s3-deployment';
 import * as appsync from '@aws-cdk/aws-appsync';
 
-import { MyBackend } from './mybackend';
+import { BackendBook } from './backend-book';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class CdkGraphqlStack extends cdk.Stack {
 	constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
 		super(scope, id, props);
 
-		const myBackend = new MyBackend(this, "MyBackend");
+		const backend_book = new BackendBook(this, "backend_book");
 
 		// The code that defines your stack goes here
 
@@ -20,12 +20,15 @@ export class CdkGraphqlStack extends cdk.Stack {
 		// const queue = new sqs.Queue(this, 'AwsCdkTestQueue', {
 		//   visibilityTimeout: cdk.Duration.seconds(300)
 		// });
-		new apiGateway.LambdaRestApi(this, "MyEndpoint", {
-			handler: myBackend.resthandler
+		const restapi_book = new apiGateway.LambdaRestApi(this, "restapi_book", {
+			handler: backend_book.resthandler_book
+		});
+		new cdk.CfnOutput(this, "restapi_book_url", {
+			value: restapi_book.url
 		});
 
-		const myGraphqlApi = new appsync.GraphqlApi(this, "MyGraphqlApi", {
-			name: "my-book-api",
+		const graphqlapi_book = new appsync.GraphqlApi(this, "graphqlapi_book", {
+			name: "graphqlapi_book",
 			schema: appsync.Schema.fromAsset('graphql/schema.graphql'),
 			authorizationConfig: {
 				defaultAuthorization: {
@@ -37,13 +40,19 @@ export class CdkGraphqlStack extends cdk.Stack {
 				}
 			}
 		});
+		new cdk.CfnOutput(this, "graphqlapi_book_url", {
+			value: graphqlapi_book.graphqlUrl
+		});
 
 
-		const listBookDataSource = myGraphqlApi.addLambdaDataSource("listBookDataSource", myBackend.appsynchandler_list);
-		listBookDataSource.createResolver({ typeName: "Query", fieldName: "listBooks", });
+		const datasource_getBooks = graphqlapi_book.addLambdaDataSource("datasource_getBooks", backend_book.appsynchandler_getBooks);
+		datasource_getBooks.createResolver({ typeName: "Query", fieldName: "getBooks", });
 
-		const createBookDataSource = myGraphqlApi.addLambdaDataSource("createBookDataSource", myBackend.appsynchandler_create);
-		createBookDataSource.createResolver({ typeName: "Mutation", fieldName: "createBook", });
+		const datasource_getBookById = graphqlapi_book.addLambdaDataSource("datasource_getBookById", backend_book.appsynchandler_getBookById);
+		datasource_getBookById.createResolver({ typeName: "Query", fieldName: "getBookById", });
+
+		const datasource_createBook = graphqlapi_book.addLambdaDataSource("datasource_createBook", backend_book.appsynchandler_createBook);
+		datasource_createBook.createResolver({ typeName: "Mutation", fieldName: "createBook", });
 
 
 		/*
@@ -55,10 +64,6 @@ export class CdkGraphqlStack extends cdk.Stack {
 		new s3Deployment.BucketDeployment(this, "DeployWebsite", {
 			destinationBucket: websiteBucket,
 			sources: [s3Deployment.Source.asset("frontend/build")]
-		});
-
-		new cdk.CfnOutput(this, "WebsiteAddress", {
-			value: websiteBucket.bucketWebsiteUrl
 		});
 		*/
 	}

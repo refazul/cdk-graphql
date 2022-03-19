@@ -22,13 +22,13 @@ export type Book = {
 };
 
 export type BookInput = {
-  id: Scalars['ID'];
   title: Scalars['String'];
 };
 
 export type Mutation = {
   __typename?: 'Mutation';
   createBook?: Maybe<Book>;
+  updateBook?: Maybe<Book>;
 };
 
 
@@ -36,7 +36,26 @@ export type MutationCreateBookArgs = {
   book: BookInput;
 };
 
+
+export type MutationUpdateBookArgs = {
+  book: UpdateBookInput;
+};
+
 export type Query = {
   __typename?: 'Query';
-  listBooks?: Maybe<Array<Maybe<Book>>>;
+  getBookById?: Maybe<Book>;
+  getBooks?: Maybe<Array<Maybe<Book>>>;
+};
+
+
+export type QueryGetBookByIdArgs = {
+  bookId: Scalars['ID'];
+};
+
+export type UpdateBookInput = {
+  completed?: InputMaybe<Scalars['Boolean']>;
+  id: Scalars['ID'];
+  rating?: InputMaybe<Scalars['Int']>;
+  reviews?: InputMaybe<Array<InputMaybe<Scalars['String']>>>;
+  title?: InputMaybe<Scalars['String']>;
 };
